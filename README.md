@@ -24,13 +24,13 @@ Running as root.
 #### init wireguard server
 
 ```bash
-./user.sh -i
+./wg.sh -i
 ```
 
 #### add a user
 
 ```bash
-./user.sh -a alice
+./wg.sh -a alice
 ```
 
 This will generate a client conf and qrcode in users directory which name is alice
@@ -39,7 +39,7 @@ and add alice to the wg server config.
 This will disable default route change. Route traffic Manually.
 
 ```bash
-./user.sh -a alice -r
+./wg.sh -a alice -r
 ```
 
 client will route all traffic to server.
@@ -47,14 +47,14 @@ client will route all traffic to server.
 #### delete a user
 
 ```bash
-./user.sh -d alice
+./wg.sh -d alice
 ```
 This will delete the alice directory and delete alice from the wg server config.
 
 #### clear all
 
 ```bash
-./user.sh -c
+./wg.sh -c
 ```
 
 Delete all users before clear.
