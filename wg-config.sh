@@ -9,7 +9,7 @@ AVAILABLE_IP_FILE=.available_ip
 AVAILABLE_IP6_FILE=.available_ip6
 WG_TMP_CONF_FILE=.$_INTERFACE.conf
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
-USERS_FOLDER=/etc/wireguard/users
+USERS_DIR=/etc/wireguard/users
 
 source /etc/wireguard/wg-config.def
 source ./ip_utils.sh
