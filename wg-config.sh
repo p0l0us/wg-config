@@ -2,9 +2,6 @@
 
 cd `dirname ${BASH_SOURCE[0]}`
 
-source /etc/wireguard/wg-config.def
-source ./ip_utils.sh
-
 CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
 SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
 SAVED_FILE=.saved
@@ -13,6 +10,9 @@ AVAILABLE_IP6_FILE=.available_ip6
 WG_TMP_CONF_FILE=.$_INTERFACE.conf
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
 USERS_FOLDER=/etc/wireguard/users
+
+source /etc/wireguard/wg-config.def
+source ./ip_utils.sh
 
 generate_cidr_ip_file_if() {
     # IPv4
