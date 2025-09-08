@@ -2,7 +2,7 @@
 
 cd `dirname ${BASH_SOURCE[0]}`
 
-. /etc/wireguard/wg-user.def
+. /etc/wireguard/wg-config.def
 CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
 SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
 SAVED_FILE=.saved
