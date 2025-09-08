@@ -2,28 +2,20 @@
 
 cd `dirname ${BASH_SOURCE[0]}`
 
-. /etc/wireguard/wg-config.def
+source /etc/wireguard/wg-config.def
+source ./ip_utils.sh
+
 CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
 SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
 SAVED_FILE=.saved
 AVAILABLE_IP_FILE=.available_ip
+AVAILABLE_IP6_FILE=.available_ip6
 WG_TMP_CONF_FILE=.$_INTERFACE.conf
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
 
-dec2ip() {
-    local delim=''
-    local ip dec=$@
-    for e in {3..0}
-    do
-        ((octet = dec / (256 ** e) ))
-        ((dec -= octet * 256 ** e))
-        ip+=$delim$octet
-        delim=.
-    done
-    printf '%s\n' "$ip"
-}
 
 generate_cidr_ip_file_if() {
+    # IPv4
     local cidr=${_VPN_NET}
     local ip mask a b c d
 
@@ -35,26 +27,41 @@ generate_cidr_ip_file_if() {
     local end=$((beg+num_hosts-1))
     ip=$(dec2ip $((beg+1)))
     _SERVER_IP="$ip/$mask"
-    if [[ -f $AVAILABLE_IP_FILE ]]; then
-        return
+    if [[ ! -f $AVAILABLE_IP_FILE ]]; then
+        > $AVAILABLE_IP_FILE
+        local i=$((beg+2))
+        while [[ $i -lt $end ]]; do
+            ip=$(dec2ip $i)
+            echo "$ip/$mask" >> $AVAILABLE_IP_FILE
+            i=$((i+1))
+        done
     fi
 
-    > $AVAILABLE_IP_FILE
-    local i=$((beg+2))
-    while [[ $i -lt $end ]]; do
-        ip=$(dec2ip $i)
-        echo "$ip/$mask" >> $AVAILABLE_IP_FILE
-        i=$((i+1))
-    done
+    # IPv6
+    if [[ -n "${_VPN_NETv6}" ]]; then
+        if [[ ! -f $AVAILABLE_IP6_FILE ]]; then
+            > $AVAILABLE_IP6_FILE
+            ip6_expand "${_VPN_NETv6}" >> $AVAILABLE_IP6_FILE
+        fi
+    fi
 }
 
 get_vpn_ip() {
     local ip=$(head -1 $AVAILABLE_IP_FILE)
     if [[ $ip ]]; then
-    local mat="${ip/\//\\\/}"
+        local mat="${ip/\//\\\/}"
         sed -i "/^$mat$/d" $AVAILABLE_IP_FILE
     fi
     echo "$ip"
+}
+
+get_vpn_ip6() {
+    local ip6=$(head -1 $AVAILABLE_IP6_FILE)
+    if [[ $ip6 ]]; then
+        local mat="${ip6/\//\\\/}"
+        sed -i "/^$mat$/d" $AVAILABLE_IP6_FILE
+    fi
+    echo "$ip6"
 }
 
 add_user() {
@@ -69,27 +76,51 @@ add_user() {
     # client config file
     _PRIVATE_KEY=`cat $userdir/privatekey`
     _VPN_IP=$(get_vpn_ip)
-    if [[ -z $_VPN_IP ]]; then
+    _VPN_IP6=$(get_vpn_ip6)
+    if [[ -z $_VPN_IP && -z $_VPN_IP6 ]]; then
         echo "no available ip"
         exit 1
     fi
-    eval "echo \"$(cat "${template_file}")\"" > $userdir/wg0.conf
+    # Compose Address field for client config
+    local address=""
+    if [[ -n $_VPN_IP ]]; then
+        address="$_VPN_IP"
+    fi
+    if [[ -n $_VPN_IP6 ]]; then
+        if [[ -n $address ]]; then
+            address+=" ,$_VPN_IP6"
+        else
+            address="$_VPN_IP6"
+        fi
+    fi
+    export ADDRESS="$address"
+    eval "echo \"$(cat \"${template_file}\")\"" > $userdir/wg0.conf
     qrencode -o $userdir/$user.png  < $userdir/wg0.conf
 
     # change wg config
-    local ip=${_VPN_IP%/*}/32
+    local allowed_ips=""
+    if [[ -n $_VPN_IP ]]; then
+        allowed_ips="${_VPN_IP%/*}/32"
+    fi
+    if [[ -n $_VPN_IP6 ]]; then
+        if [[ -n $allowed_ips ]]; then
+            allowed_ips+=" ,${_VPN_IP6}"
+        else
+            allowed_ips="${_VPN_IP6}"
+        fi
+    fi
     if [[ ! -z "$route" ]]; then
-        ip="0.0.0.0/0,::/0"
+        allowed_ips="0.0.0.0/0,::/0"
     fi
     local public_key=`cat $userdir/publickey`
-    wg set $interface peer $public_key allowed-ips $ip
+    wg set $interface peer $public_key allowed-ips $allowed_ips
     if [[ $? -ne 0 ]]; then
         echo "wg set failed"
         rm -rf $user
         exit 1
     fi
 
-    echo "$user $_VPN_IP $public_key" >> ${SAVED_FILE} && echo "use $user is added. config dir is $userdir"
+    echo "$user $_VPN_IP $_VPN_IP6 $public_key" >> ${SAVED_FILE} && echo "use $user is added. config dir is $userdir"
 }
 
 del_user() {
@@ -115,21 +146,36 @@ del_user() {
 
 generate_and_install_server_config_file() {
     local template_file=${SERVER_TPL_FILE}
-    local ip
+    local ip4 ip6 allowed_ips
 
     # server config file
-    eval "echo \"$(cat "${template_file}")\"" > $WG_TMP_CONF_FILE
-    while read user vpn_ip public_key; do
-        ip=${vpn_ip%/*}/32
+    eval "echo \"$(cat \"${template_file}\")\"" > $WG_TMP_CONF_FILE
+    while read user vpn_ip vpn_ip6 public_key; do
+        ip4=""
+        ip6=""
+        if [[ -n $vpn_ip ]]; then
+            ip4="${vpn_ip%/*}/32"
+        fi
+        if [[ -n $vpn_ip6 ]]; then
+            ip6="$vpn_ip6"
+        fi
+        allowed_ips="$ip4"
+        if [[ -n $ip6 ]]; then
+            if [[ -n $allowed_ips ]]; then
+                allowed_ips+=" ,$ip6"
+            else
+                allowed_ips="$ip6"
+            fi
+        fi
         if [[ ! -z "$route" ]]; then
-            ip="0.0.0.0/0,::/0"
+            allowed_ips="0.0.0.0/0,::/0"
         fi
         cat >> $WG_TMP_CONF_FILE <<EOF
 
 # $user 
 [Peer]
 PublicKey = $public_key
-AllowedIPs = $ip
+AllowedIPs = $allowed_ips
 EOF
     done < ${SAVED_FILE}
     \cp -f $WG_TMP_CONF_FILE $WG_CONF_FILE
