@@ -2,6 +2,6 @@
 .saved
 .wg0.conf
 users/
-wg.def
+wg-user.def
 client.conf.tpl
 server.conf.tpl

@@ -2,9 +2,9 @@
 
 cd `dirname ${BASH_SOURCE[0]}`
 
-. wg.def
-CLIENT_TPL_FILE=client.conf.tpl
-SERVER_TPL_FILE=server.conf.tpl
+. /etc/wireguard/wg-user.def
+CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
+SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
 SAVED_FILE=.saved
 AVAILABLE_IP_FILE=.available_ip
 WG_TMP_CONF_FILE=.$_INTERFACE.conf
