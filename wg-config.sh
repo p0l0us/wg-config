@@ -30,7 +30,9 @@ generate_cidr_ip_file_if() {
     IFS=$'/' read ip mask <<< "$cidr"
     IFS=. read -r a b c d <<< "$ip"
     local beg=$((a * 256 ** 3 + b * 256 ** 2 + c * 256 + d))
-    local end=$(( beg+(1<<(32-mask))-1 ))
+    local host_bits=$((32-mask))
+    local num_hosts=$(echo "2^$host_bits" | bc)
+    local end=$((beg+num_hosts-1))
     ip=$(dec2ip $((beg+1)))
     _SERVER_IP="$ip/$mask"
     if [[ -f $AVAILABLE_IP_FILE ]]; then
