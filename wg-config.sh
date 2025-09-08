@@ -12,7 +12,7 @@ AVAILABLE_IP_FILE=.available_ip
 AVAILABLE_IP6_FILE=.available_ip6
 WG_TMP_CONF_FILE=.$_INTERFACE.conf
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
-
+USERS_FOLDER=/etc/wireguard/users
 
 generate_cidr_ip_file_if() {
     # IPv4
@@ -68,7 +68,7 @@ add_user() {
     local user=$1
     local template_file=${CLIENT_TPL_FILE}
     local interface=${_INTERFACE}
-    local userdir="users/$user"
+    local userdir="$USERS_DIR/$user"
 
     mkdir -p "$userdir"
     wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey
@@ -125,7 +125,7 @@ add_user() {
 
 del_user() {
     local user=$1
-    local userdir="users/$user"
+    local userdir="$USERS_DIR/$user"
     local ip key
     local interface=${_INTERFACE}
 
