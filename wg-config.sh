@@ -104,7 +104,7 @@ add_user() {
     fi
     if [[ -n $_VPN_IP6 ]]; then
         if [[ -n $allowed_ips ]]; then
-            allowed_ips+=" ,${_VPN_IP6}"
+            allowed_ips="${allowed_ips},${_VPN_IP6}"
         else
             allowed_ips="${_VPN_IP6}"
         fi
