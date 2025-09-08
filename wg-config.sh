@@ -94,7 +94,7 @@ add_user() {
         fi
     fi
     export ADDRESS="$address"
-    eval "echo \"$(cat \"${template_file}\")\"" > $userdir/wg0.conf
+    eval "echo \"$(cat "${template_file}")\"" > $userdir/wg0.conf
     qrencode -o $userdir/$user.png  < $userdir/wg0.conf
 
     # change wg config
@@ -149,7 +149,7 @@ generate_and_install_server_config_file() {
     local ip4 ip6 allowed_ips
 
     # server config file
-    eval "echo \"$(cat \"${template_file}\")\"" > $WG_TMP_CONF_FILE
+    eval "echo \"$(cat "${template_file}")\"" > $WG_TMP_CONF_FILE
     while read user vpn_ip vpn_ip6 public_key; do
         ip4=""
         ip6=""
