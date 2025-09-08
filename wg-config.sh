@@ -126,7 +126,7 @@ generate_and_install_server_config_file() {
         fi
         cat >> $WG_TMP_CONF_FILE <<EOF
 
-## $user ##
+# $user 
 [Peer]
 PublicKey = $public_key
 AllowedIPs = $ip
