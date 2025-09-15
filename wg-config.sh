@@ -6,14 +6,14 @@ source /etc/wireguard/wg-config.def
 
 CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
 SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
-SAVED_FILE=/etc/wireguard/wg-config.saved
-AVAILABLE_IP_FILE=/etc/wireguard/wg-config.available_ip
-AVAILABLE_IP6_FILE=/etc/wireguard/wg-config.available_ip6
-WG_TMP_CONF_FILE="$_INTERFACE.conf.tmp"
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
+
+SAVED_FILE="$WG_CONF_FILE.saved"
+AVAILABLE_IP_FILE="$WG_CONF_FILE.available_ipv4"
+AVAILABLE_IP6_FILE="$WG_CONF_FILE.available_ipv6"
+WG_TMP_CONF_FILE="$WG_CONF_FILE.conf.tmp"
+
 USERS_DIR=/etc/wireguard/users
-
-
 
 # Convert decimal to IPv4 address
 # Usage: dec2ip <int>
