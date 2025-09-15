@@ -2,17 +2,58 @@
 
 cd `dirname ${BASH_SOURCE[0]}`
 
+source /etc/wireguard/wg-config.def
+
 CLIENT_TPL_FILE=/etc/wireguard/client.conf.tpl
 SERVER_TPL_FILE=/etc/wireguard/server.conf.tpl
-SAVED_FILE=.saved
-AVAILABLE_IP_FILE=.available_ip
-AVAILABLE_IP6_FILE=.available_ip6
-WG_TMP_CONF_FILE=.$_INTERFACE.conf
+SAVED_FILE=/etc/wireguard/wg-config.saved
+AVAILABLE_IP_FILE=/etc/wireguard/wg-config.available_ip
+AVAILABLE_IP6_FILE=/etc/wireguard/wg-config.available_ip6
+WG_TMP_CONF_FILE="$_INTERFACE.conf.tmp"
 WG_CONF_FILE="/etc/wireguard/$_INTERFACE.conf"
 USERS_DIR=/etc/wireguard/users
 
-source /etc/wireguard/wg-config.def
-source ./ip_utils.sh
+
+
+# Convert decimal to IPv4 address
+# Usage: dec2ip <int>
+dec2ip() {
+    local delim=''
+    local ip dec=$1
+    for e in {3..0}
+    do
+        ((octet = dec / (256 ** e) ))
+        ((dec -= octet * 256 ** e))
+        ip+=$delim$octet
+        delim=.
+    done
+    printf '%s\n' "$ip"
+}
+
+# Generate IPv6 address from prefix and host part
+# Usage: gen_ipv6 <prefix> <host>
+gen_ipv6() {
+    local prefix=$1
+    local host=$2
+    python3 -c "import ipaddress; print(str(ipaddress.IPv6Address(int(ipaddress.IPv6Network(u'${prefix}').network_address)+${host})))"
+}
+
+# Expand a /64 IPv6 subnet to a list of addresses (demo: first 100)
+ip6_expand() {
+    local cidr="$1"
+    local ip6 mask
+    IFS='/' read ip6 mask <<< "$cidr"
+    if [[ "$mask" != "64" ]]; then
+        echo "Only /64 IPv6 subnets are supported." >&2
+        return 1
+    fi
+    local base=$(python3 -c "import ipaddress; print(ipaddress.IPv6Network(u'$ip6/$mask').network_address)")
+    for i in {1..100}; do
+        local addr=$(python3 -c "import ipaddress; print(ipaddress.IPv6Address(int(ipaddress.IPv6Address(u'$base'))+$i))")
+        echo "$addr/$mask"
+    done
+}
+
 
 generate_cidr_ip_file_if() {
     # IPv4
